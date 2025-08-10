@@ -6,126 +6,142 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Weather - New Albany, MS</title>
 <style>
-  :root {
-    --bg: #000;
-    --fg: #fff;
-    --muted: #bbbbbb;
-    --panel: rgba(255,255,255,0.12);
-    --accent: #4dabf7;
-    --danger: #ff6b6b;
+  :root{
+    --fg:#fff; --muted:#cfcfcf; --panel:rgba(0,0,0,0.45);
+    --accent:#4dabf7; --danger:#ff6b6b;
   }
-  html, body { height: 100%; }
-  body {
-    background: var(--bg);
-    color: var(--fg);
-    font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-    margin: 0; display: flex; flex-direction: column;
+  html,body{height:100%; margin:0}
+  /* Background image + blur + dark overlay */
+  body::before{
+    content:"";
+    position:fixed; inset:0; z-index:-2;
+    background:url('https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&w=1800&q=80') center/cover no-repeat;
+    filter:blur(8px) brightness(0.6);
   }
-  header { text-align: center; padding: 14px 10px 6px; }
-  h1 { font-size: 1.6rem; margin: 0 0 4px; font-weight: 600; }
-  .updated { font-size: 0.9rem; color: var(--muted); }
+  body::after{
+    content:"";
+    position:fixed; inset:0; z-index:-1;
+    background:rgba(0,0,0,0.25);
+  }
 
-  .alerts { display:none; gap:12px; padding:10px 14px; background:linear-gradient(90deg,var(--danger),#ff922b); color:#000; font-weight:700; align-items:center; }
-  .alerts .label { background:#00000020; color:#000; padding:4px 8px; border-radius:12px; font-size:0.85rem; white-space:nowrap; }
-  .alerts .items { display:flex; gap:18px; overflow:hidden; white-space:nowrap; mask-image:linear-gradient(to right, black 80%, transparent 100%); }
-  .alert-item { font-size:0.95rem; }
+  /* Center everything */
+  body{
+    font-family: system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+    color:var(--fg);
+    display:flex; align-items:center; justify-content:center;
+    min-height:100vh; padding:24px 14px; overflow-y:auto;
+  }
+  .weather-container{ width:100%; max-width:1200px; }
 
-  .current-row { display:grid; grid-template-columns:1fr 1fr 2fr; gap:14px; padding:12px 14px 4px; }
-  .panel { background:var(--panel); border-radius:12px; padding:14px; }
-  .current-main { text-align:center; }
-  .temp { font-size:4.2rem; font-weight:800; line-height:1; }
-  .cond { font-size:1.2rem; margin-top:6px; }
-  .icon { width:96px; height:96px; object-fit:contain; margin:8px auto 0; display:block; filter:drop-shadow(0 0 10px rgba(255,255,255,0.1)); background:rgba(255,255,255,0.06); border-radius:8px; }
+  header{text-align:center; padding:6px 0 10px}
+  h1{margin:0 0 4px; font-size:1.7rem; font-weight:700}
+  .updated{font-size:.95rem; color:var(--muted)}
 
-  .stats { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
-  .stat { background:rgba(255,255,255,0.08); border-radius:10px; padding:10px; text-align:center; }
-  .stat .label { font-size:0.8rem; color:var(--muted); margin-bottom:6px; }
-  .stat .value { font-size:1.3rem; font-weight:700; }
+  /* Alerts */
+  .alerts{display:none; gap:12px; padding:10px 14px; margin:8px 0 12px;
+    background:linear-gradient(90deg,var(--danger),#ff922b); color:#000; font-weight:800; border-radius:12px}
+  .alerts .label{background:#00000020; padding:4px 10px; border-radius:999px; font-size:.85rem}
+  .alerts .items{display:flex; gap:18px; overflow:hidden; white-space:nowrap;
+    mask-image:linear-gradient(to right, black 80%, transparent 100%)}
+  .alert-item{font-size:.95rem}
 
-  .wind { display:grid; grid-template-columns:56px 1fr; align-items:center; gap:10px; }
-  .compass { width:56px; height:56px; border-radius:50%; border:3px solid var(--accent); position:relative; margin:0 auto; }
-  .needle { position:absolute; left:50%; top:50%; width:2px; height:22px; background:var(--accent); transform-origin: bottom center; }
-  .wind-readout { text-align:left; font-size:1rem; }
+  /* Grid rows */
+  .current-row{display:grid; grid-template-columns:1fr 1fr 2fr; gap:14px}
+  .panel{background:var(--panel); border-radius:14px; padding:14px; backdrop-filter:blur(4px)}
+  .current-main{text-align:center}
+  .temp{font-size:4.3rem; font-weight:900; line-height:1}
+  .cond{font-size:1.2rem; margin-top:6px}
+  .icon{width:96px; height:96px; object-fit:contain; margin:10px auto 0; display:block;
+    background:rgba(255,255,255,0.08); border-radius:10px}
 
-  .hourly { padding:8px 14px 16px; }
-  .hourly .title { font-weight:700; margin:0 0 8px 4px; color:var(--muted); font-size:0.95rem; }
-  .hours { display:flex; gap:10px; overflow-x:auto; padding-bottom:4px; scrollbar-width:thin; }
-  .hour { background:var(--panel); border-radius:10px; padding:10px; min-width:84px; text-align:center; }
-  .hour .t { font-size:1.2rem; font-weight:700; margin-top:4px; }
-  .hour .p { font-size:0.9rem; color:var(--muted); }
-  .hour img { width:44px; height:44px; object-fit:contain; display:block; margin:4px auto 0; background:rgba(255,255,255,0.06); border-radius:6px; }
+  .stats{display:grid; grid-template-columns:1fr 1fr; gap:10px}
+  .stat{background:rgba(255,255,255,0.08); border-radius:10px; padding:10px; text-align:center}
+  .stat .label{font-size:.8rem; color:var(--muted); margin-bottom:6px}
+  .stat .value{font-size:1.25rem; font-weight:800}
 
-  .forecast { display:flex; justify-content:center; flex-wrap:wrap; gap:14px; padding:0 14px 16px; }
-  .day { background:var(--panel); border-radius:12px; padding:10px; width:150px; text-align:center; }
-  .day img { width:60px; height:60px; background:rgba(255,255,255,0.06); border-radius:6px; }
-  .day-name { font-size:1.05rem; font-weight:700; margin-bottom:6px; }
-  .day-temp { font-size:1.05rem; margin-top:4px; }
+  .wind{display:grid; grid-template-columns:56px 1fr; align-items:center; gap:10px}
+  .compass{width:56px; height:56px; border-radius:50%; border:3px solid var(--accent); position:relative; margin:0 auto}
+  .needle{position:absolute; left:50%; top:50%; width:2px; height:22px; background:var(--accent); transform-origin:bottom center}
 
-  @media (max-width: 900px) { .current-row { grid-template-columns:1fr; } }
+  /* Hourly strip */
+  .hourly{margin-top:16px}
+  .hourly .title{font-weight:800; margin:0 0 8px 6px; color:var(--muted)}
+  .hours{display:flex; gap:10px; overflow-x:auto; padding-bottom:4px; scrollbar-width:thin}
+  .hour{background:var(--panel); border-radius:10px; padding:10px; min-width:86px; text-align:center; backdrop-filter:blur(4px)}
+  .hour img{width:44px; height:44px; object-fit:contain; display:block; margin:4px auto 0; background:rgba(255,255,255,0.07); border-radius:6px}
+  .hour .t{font-weight:800; margin-top:4px}
+  .hour .p{font-size:.9rem; color:var(--muted)}
+
+  /* 5-day */
+  .forecast{display:flex; justify-content:center; flex-wrap:wrap; gap:14px; margin-top:14px}
+  .day{background:var(--panel); border-radius:12px; padding:10px; width:150px; text-align:center; backdrop-filter:blur(4px)}
+  .day img{width:60px; height:60px; background:rgba(255,255,255,0.07); border-radius:6px}
+  .day-name{font-weight:800; margin-bottom:6px}
+  .day-temp{margin-top:4px}
+
+  @media (max-width: 1000px){ .current-row{grid-template-columns:1fr} }
 </style>
 </head>
 <body>
-  <header>
-    <h1>New Albany, MS Weather</h1>
-    <div class="updated" id="updated">Updated —</div>
-  </header>
+  <div class="weather-container">
+    <header>
+      <h1>New Albany, MS Weather</h1>
+      <div class="updated" id="updated">Updated —</div>
+    </header>
 
-  <div class="alerts" id="alerts">
-    <div class="label">ALERTS</div>
-    <div class="items" id="alerts-items"></div>
-  </div>
-
-  <section class="current-row">
-    <div class="panel current-main">
-      <div class="temp" id="temperature">--°F</div>
-      <div class="cond" id="description">Loading...</div>
-      <img class="icon" id="icon" src="" alt="icon" onerror="this.style.display='none'">
+    <div class="alerts" id="alerts">
+      <div class="label">ALERTS</div>
+      <div class="items" id="alerts-items"></div>
     </div>
 
-    <div class="panel">
-      <div class="stats">
-        <div class="stat"><div class="label">Today High</div><div class="value" id="hi">--°F</div></div>
-        <div class="stat"><div class="label">Tonight Low</div><div class="value" id="lo">--°F</div></div>
-        <div class="stat"><div class="label">Feels Like</div><div class="value" id="feelslike">--°F</div></div>
-        <div class="stat"><div class="label">Precip Chance</div><div class="value" id="pop">--%</div></div>
+    <section class="current-row">
+      <div class="panel current-main">
+        <div class="temp" id="temperature">--°F</div>
+        <div class="cond" id="description">Loading...</div>
+        <img class="icon" id="icon" src="" alt="icon" onerror="this.style.display='none'">
       </div>
-    </div>
 
-    <div class="panel">
-      <div class="wind">
-        <div class="compass"><div class="needle" id="needle" style="transform: translate(-50%, -100%) rotate(0deg);"></div></div>
-        <div class="wind-readout">
-          <div id="wind">Wind: -- mph</div>
-          <div id="gust">Gusts: -- mph</div>
-          <div id="visibility">Visibility: -- mi</div>
-          <div id="uv">UV Index: --</div>
-          <div id="accum">Recent Precip: --</div>
+      <div class="panel">
+        <div class="stats">
+          <div class="stat"><div class="label">Today High</div><div class="value" id="hi">--°F</div></div>
+          <div class="stat"><div class="label">Tonight Low</div><div class="value" id="lo">--°F</div></div>
+          <div class="stat"><div class="label">Feels Like</div><div class="value" id="feelslike">--°F</div></div>
+          <div class="stat"><div class="label">Precip Chance</div><div class="value" id="pop">--%</div></div>
         </div>
       </div>
-    </div>
-  </section>
 
-  <section class="hourly">
-    <div class="title">Next 12 Hours</div>
-    <div class="hours" id="hours"></div>
-  </section>
+      <div class="panel">
+        <div class="wind">
+          <div class="compass"><div class="needle" id="needle" style="transform: translate(-50%, -100%) rotate(0deg);"></div></div>
+          <div class="wind-readout">
+            <div id="wind">Wind: -- mph</div>
+            <div id="gust">Gusts: -- mph</div>
+            <div id="visibility">Visibility: -- mi</div>
+            <div id="uv">UV Index: --</div>
+            <div id="accum">Recent Precip: --</div>
+          </div>
+        </div>
+      </div>
+    </section>
 
-  <section class="forecast" id="forecast"></section>
+    <section class="hourly">
+      <div class="title">Next 12 Hours</div>
+      <div class="hours" id="hours"></div>
+    </section>
+
+    <section class="forecast" id="forecast"></section>
+  </div>
 
 <script>
 (async function() {
   const LAT = 34.4948, LON = -89.0248;
 
   const $ = id => document.getElementById(id);
-  const setText = (id, v) => $(id).textContent = v;
+  const setText = (id, v) => ($(id).textContent = v);
   const toMi = m => (m == null ? null : (m / 1609.344).toFixed(1));
   const toMph = mps => (mps == null ? null : (mps * 2.236936).toFixed(0));
   const toF = c => (c == null ? null : (c * 9/5 + 32));
-  const fmtTime = iso => {
-    const d = new Date(iso);
-    let h = d.getHours(); const ampm = h >= 12 ? 'PM' : 'AM'; h = h % 12 || 12;
-    const m = d.getMinutes(); return `${h}${m >= 30 ? ':30' : ''} ${ampm}`;
-  };
+  const fmtTime = iso => { const d = new Date(iso); let h=d.getHours(); const a=h>=12?'PM':'AM'; h=h%12||12; const m=d.getMinutes(); return `${h}${m>=30?':30':''} ${a}`; };
   const rotNeedle = deg => { $('needle').style.transform = `translate(-50%, -100%) rotate(${((deg||0)+180)%360}deg)`; };
 
   async function getJSON(url) {
@@ -135,7 +151,7 @@
   }
 
   try {
-    // 0) Alerts (doesn't block the rest)
+    // Alerts (non-blocking)
     getJSON(`https://api.weather.gov/alerts/active?point=${LAT},${LON}`).then(alerts => {
       if (alerts.features?.length) {
         const bar = $('alerts'), items = $('alerts-items');
@@ -150,18 +166,17 @@
       }
     }).catch(()=>{});
 
-    // 1) Points meta
+    // Points metadata
     const points = await getJSON(`https://api.weather.gov/points/${LAT},${LON}`);
     const forecastUrl = points.properties.forecast;
     const hourlyUrl = points.properties.forecastHourly;
     const stationsUrl = points.properties.observationStations;
-    const gridUrl = points.properties.forecastGridData; // for UV (optional)
+    const gridUrl = points.properties.forecastGridData;
 
-    // 2) Forecast daily (for hi/lo & 5-day)
+    // Daily forecast (hi/lo + 5-day)
     const daily = await getJSON(forecastUrl);
     const periods = daily.properties.periods || [];
 
-    // Today
     const now = new Date();
     const todayName = now.toLocaleDateString(undefined, { weekday: 'long' });
     const todayDay = periods.find(p => p.isDaytime && p.name.includes(todayName));
@@ -170,7 +185,6 @@
     setText('lo', tonight ? `${tonight.temperature}°${tonight.temperatureUnit}` : '--°F');
     setText('pop', todayDay?.probabilityOfPrecipitation?.value != null ? `${todayDay.probabilityOfPrecipitation.value}%` : '--%');
 
-    // 5-day daytime
     const forecastEl = $('forecast'); forecastEl.innerHTML = '';
     let daysAdded = 0;
     for (let p of periods) {
@@ -187,7 +201,7 @@
       }
     }
 
-    // 3) Hourly (also used for fallback "current")
+    // Hourly forecast (next 12) — also used as fallback "current"
     const hr = await getJSON(hourlyUrl);
     const hours = hr.properties.periods?.slice(0,12) || [];
     const hoursEl = $('hours'); hoursEl.innerHTML = '';
@@ -203,10 +217,10 @@
       hoursEl.appendChild(el);
     });
 
-    // 4) Current conditions
-    let tempF = null, desc = null, icon = null, windMps = null, gustMps = null, windDir = null, visMi = null, feelsF = null, p1=null, p6=null, updatedIso=null;
+    // Current conditions
+    let tempF=null, desc=null, icon=null, windMps=null, gustMps=null, windDir=null, visMi=null, feelsF=null, p1=null, p6=null, updatedIso=null;
 
-    // Try observation station first
+    // Try station observation first
     try {
       const st = await getJSON(stationsUrl);
       const stationId = st.features?.[0]?.properties?.stationIdentifier;
@@ -216,25 +230,19 @@
       tempF = toF(props.temperature?.value);
       desc  = props.textDescription || null;
       icon  = props.icon || null;
-      windMps = props.windSpeed?.value;
-      gustMps = props.windGust?.value;
-      windDir = props.windDirection?.value;
+      windMps = props.windSpeed?.value; gustMps = props.windGust?.value; windDir = props.windDirection?.value;
       visMi = toMi(props.visibility?.value);
       const wc = toF(props.windChill?.value), hi = toF(props.heatIndex?.value);
       if (hi != null && tempF != null && hi > tempF + 0.5) feelsF = hi;
       else if (wc != null && tempF != null && wc < tempF - 0.5) feelsF = wc;
-      p1 = props.precipitationLastHour?.value;
-      p6 = props.precipitationLast6Hours?.value;
+      p1 = props.precipitationLastHour?.value; p6 = props.precipitationLast6Hours?.value;
       updatedIso = props.timestamp || null;
-    } catch (e) {
-      // Fallback to first hourly period if obs fails
+    } catch {
+      // Fallback to first hourly period
       const h0 = hours[0];
       if (h0) {
-        tempF = h0.temperature;
-        desc  = h0.shortForecast;
-        icon  = h0.icon;
-        windMps = null; gustMps = null; windDir = null; // not available from hourly
-        visMi = null; feelsF = h0.apparentTemperature || h0.temperature;
+        tempF = h0.temperature; desc = h0.shortForecast; icon = h0.icon;
+        feelsF = h0.apparentTemperature || h0.temperature;
         updatedIso = h0.startTime;
       }
     }
@@ -256,7 +264,7 @@
     if (in1 != null || in6 != null) precipStr = [in1!=null?`${in1}" (1h)`:null, in6!=null?`${in6}" (6h)`:null].filter(Boolean).join(' · ');
     setText('accum', `Recent Precip: ${precipStr}`);
 
-    // 5) UV index (optional; not always present)
+    // UV (grid data)
     try {
       const grid = await getJSON(gridUrl);
       const uvi = grid.properties?.ultravioletIndex?.values?.[0]?.value;
@@ -266,6 +274,7 @@
     // Updated time
     const upd = updatedIso || new Date().toISOString();
     setText('updated', `Updated — ${new Date(upd).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`);
+
   } catch (err) {
     console.error(err);
     setText('description', 'Error loading weather data.');
