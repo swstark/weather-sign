@@ -11,7 +11,8 @@
     --accent:#4dabf7; --danger:#ff6b6b;
   }
   html,body{height:100%; margin:0}
-  /* Background image + blur + dark overlay */
+
+  /* Background image + blur + overlay */
   body::before{
     content:"";
     position:fixed; inset:0; z-index:-2;
@@ -125,7 +126,7 @@
     </section>
 
     <section class="hourly">
-      <div class="title">Next 12 Hours</div>
+      <div class="title">Next 10 Hours</div>
       <div class="hours" id="hours"></div>
     </section>
 
@@ -201,9 +202,9 @@
       }
     }
 
-    // Hourly forecast (next 12) — also used as fallback "current"
+    // Hourly forecast (next 10) — also used as fallback "current"
     const hr = await getJSON(hourlyUrl);
-    const hours = hr.properties.periods?.slice(0,12) || [];
+    const hours = hr.properties.periods?.slice(0,10) || [];
     const hoursEl = $('hours'); hoursEl.innerHTML = '';
     hours.forEach(h => {
       const pop = h.probabilityOfPrecipitation?.value;
