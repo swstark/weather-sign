@@ -3,14 +3,18 @@
 <head>
 <meta charset="UTF-8">
 <meta http-equiv="refresh" content="300"> <!-- refresh every 5 minutes -->
-<title>Current Weather - New Albany, MS</title>
+<title>Weather - New Albany, MS</title>
 <style>
     body {
-        background-color: #003366;
+        background-color: #000000;
         color: white;
         font-family: Arial, sans-serif;
         text-align: center;
-        padding-top: 50px;
+        padding: 20px;
+        margin: 0;
+    }
+    h1 {
+        margin-bottom: 10px;
     }
     .temp {
         font-size: 4em;
@@ -25,30 +29,57 @@
         height: 100px;
         margin-top: 20px;
     }
+    .forecast {
+        display: flex;
+        justify-content: center;
+        flex-wrap: wrap;
+        margin-top: 30px;
+        gap: 15px;
+    }
+    .day {
+        background-color: rgba(255, 255, 255, 0.15);
+        border-radius: 10px;
+        padding: 10px;
+        width: 140px;
+    }
+    .day img {
+        width: 60px;
+        height: 60px;
+    }
+    .day-name {
+        font-size: 1.2em;
+        font-weight: bold;
+        margin-bottom: 5px;
+    }
+    .day-temp {
+        font-size: 1.1em;
+        margin-top: 5px;
+    }
 </style>
 </head>
 <body>
-    <h1>Current Conditions</h1>
-    <div id="weather">
+    <h1>New Albany, MS Weather</h1>
+    <div id="current">
         <div class="temp" id="temperature">--°F</div>
         <div class="condition" id="description">Loading...</div>
         <img class="icon" id="icon" src="" alt="">
     </div>
 
+    <div class="forecast" id="forecast"></div>
+
 <script>
 async function getWeather() {
     try {
-        // National Weather Service gridpoint for New Albany, MS
+        // NWS API: Point for New Albany, MS
         let pointsResponse = await fetch("https://api.weather.gov/points/34.4948,-89.0248");
         let pointsData = await pointsResponse.json();
-        let obsUrl = pointsData.properties.observationStations;
         
-        // Get the first station
-        let stationsResponse = await fetch(obsUrl);
+        // Get observation station for current conditions
+        let stationsResponse = await fetch(pointsData.properties.observationStations);
         let stationsData = await stationsResponse.json();
         let stationId = stationsData.features[0].properties.stationIdentifier;
 
-        // Get current observation from that station
+        // Get latest observation
         let obsResponse = await fetch(`https://api.weather.gov/stations/${stationId}/observations/latest`);
         let obsData = await obsResponse.json();
 
@@ -62,6 +93,33 @@ async function getWeather() {
         document.getElementById("temperature").textContent = `${tempF}°F`;
         document.getElementById("description").textContent = description;
         document.getElementById("icon").src = iconUrl;
+
+        // Get forecast data
+        let forecastResponse = await fetch(pointsData.properties.forecast);
+        let forecastData = await forecastResponse.json();
+
+        let forecastContainer = document.getElementById("forecast");
+        forecastContainer.innerHTML = "";
+
+        // Show next 5 forecast periods (usually 5 days)
+        let periods = forecastData.properties.periods;
+        let daysAdded = 0;
+
+        for (let i = 0; i < periods.length && daysAdded < 5; i++) {
+            if (periods[i].isDaytime) {
+                let dayDiv = document.createElement("div");
+                dayDiv.className = "day";
+                dayDiv.innerHTML = `
+                    <div class="day-name">${periods[i].name}</div>
+                    <img src="${periods[i].icon}" alt="">
+                    <div>${periods[i].shortForecast}</div>
+                    <div class="day-temp">${periods[i].temperature}°${periods[i].temperatureUnit}</div>
+                `;
+                forecastContainer.appendChild(dayDiv);
+                daysAdded++;
+            }
+        }
+
     } catch (error) {
         document.getElementById("description").textContent = "Error loading weather data.";
         console.error(error);
