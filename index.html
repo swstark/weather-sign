@@ -1,4 +1,74 @@
-<a class="weatherwidget-io" href="https://forecast7.com/en/undefined/?unit=us" data-label_1="NEW ALBANY" data-label_2="WEATHER" data-icons="Climacons Animated" data-theme="original" >NEW ALBANY WEATHER</a>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="refresh" content="300"> <!-- refresh every 5 minutes -->
+<title>Current Weather - New Albany, MS</title>
+<style>
+    body {
+        background-color: #003366;
+        color: white;
+        font-family: Arial, sans-serif;
+        text-align: center;
+        padding-top: 50px;
+    }
+    .temp {
+        font-size: 4em;
+        font-weight: bold;
+    }
+    .condition {
+        font-size: 2em;
+        margin-top: 10px;
+    }
+    .icon {
+        width: 100px;
+        height: 100px;
+        margin-top: 20px;
+    }
+</style>
+</head>
+<body>
+    <h1>Current Conditions</h1>
+    <div id="weather">
+        <div class="temp" id="temperature">--°F</div>
+        <div class="condition" id="description">Loading...</div>
+        <img class="icon" id="icon" src="" alt="">
+    </div>
+
 <script>
-!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0];if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src='https://weatherwidget.io/js/widget.min.js';fjs.parentNode.insertBefore(js,fjs);}}(document,'script','weatherwidget-io-js');
+async function getWeather() {
+    try {
+        // National Weather Service gridpoint for New Albany, MS
+        let pointsResponse = await fetch("https://api.weather.gov/points/34.4948,-89.0248");
+        let pointsData = await pointsResponse.json();
+        let obsUrl = pointsData.properties.observationStations;
+        
+        // Get the first station
+        let stationsResponse = await fetch(obsUrl);
+        let stationsData = await stationsResponse.json();
+        let stationId = stationsData.features[0].properties.stationIdentifier;
+
+        // Get current observation from that station
+        let obsResponse = await fetch(`https://api.weather.gov/stations/${stationId}/observations/latest`);
+        let obsData = await obsResponse.json();
+
+        let tempF = obsData.properties.temperature.value !== null
+            ? (obsData.properties.temperature.value * 9/5 + 32).toFixed(1)
+            : "--";
+
+        let description = obsData.properties.textDescription || "N/A";
+        let iconUrl = obsData.properties.icon || "";
+
+        document.getElementById("temperature").textContent = `${tempF}°F`;
+        document.getElementById("description").textContent = description;
+        document.getElementById("icon").src = iconUrl;
+    } catch (error) {
+        document.getElementById("description").textContent = "Error loading weather data.";
+        console.error(error);
+    }
+}
+
+getWeather();
 </script>
+</body>
+</html>
